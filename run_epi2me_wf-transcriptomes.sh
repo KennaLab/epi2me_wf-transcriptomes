@@ -46,7 +46,7 @@ if [ -e "${file}" ]; then
 fi
 
 sbatch <<EOT
-!/bin/bash
+#!/bin/bash
 #SBATCH -c 2
 #SBATCH --time=48:00:00
 #SBATCH --mem=20G
@@ -82,8 +82,8 @@ if [ \$? -eq 0 ]; then
 #    echo "Remove work directory"
 #    rm -r work
 
- #   echo "Creating md5sum"
- #   find -type f -not -iname 'md5sum.txt' -exec md5sum {} \; > md5sum.txt
+#    echo "Creating md5sum"
+#    find -type f -not -iname 'md5sum.txt' -exec md5sum {} \; > md5sum.txt
 
     echo "Nanoseq workflow completed successfully."
     rm workflow.running
