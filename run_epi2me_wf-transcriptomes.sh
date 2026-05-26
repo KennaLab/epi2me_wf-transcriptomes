@@ -14,6 +14,9 @@ optional_params=( "${@:5}" )
 mkdir -p $output && cd $output
 mkdir -p execution
 
+if ! { [ -f 'workflow.running' ] || [ -f 'workflow.done' ] || [ -f 'workflow.failed' ]; }; then
+touch workflow.running
+
 output_execution="${output}/execution"
 file="${output_execution}/trace.txt"
 # Check if trace.txt exists
@@ -49,43 +52,45 @@ sbatch <<EOT
 #!/bin/bash
 #SBATCH -c 2
 #SBATCH --time=48:00:00
-#SBATCH --mem=20G
-#SBATCH --job-name epi2me_wf-transcriptome
-#SBATCH --gres=tmpspace:20G
-#SBATCH --mail-type=FAIL
-#SBATCH --mail-user=$email
-#SBATCH --error=execution/slurm-%j.err
-#SBATCH --output=execution/slurm-%j.out
+#SBATCH --nodes=1
+#SBATCH --mem 10G
+#SBATCH --gres=tmpspace:10G
+#SBATCH --job-name epi2me_wf-transcriptomes
+#SBATCH -o execution/slurm_epi2me_wf-transcriptomes.%j.out
+#SBATCH -e execution/slurm_epi2me_wf-transcriptomes.%j.err
+#SBATCH --mail-user $email
+#SBATCH --mail-type FAIL
 #SBATCH --export=NONE
 
 export NXF_JAVA_HOME='$softwaretool_path/java/jdk'
 
 ${softwaretool_path}/nextflow/nextflow run \
-    ${workflow_path}/main.nf \
-    -c $workflow_path/conf/umcu_hpc.config \
-    --de_analysis \
-    --direct_rna \
-    --fastq $input_fastq \
-    --out_dir $output \
-    --sample_sheet $input_samplesheet \
-    -resume \
-    -ansi-log false \
-    -profile slurm \
-    ${optional_params[@]:-""}
+$workflow_path/main.nf  \
+-c $workflow_path/conf/umcu_hpc.config \
+--de_analysis \
+--direct_rna \
+--fastq $input_fastq \
+--out_dir $output \
+--sample_sheet $input_samplesheet \
+-resume \
+-ansi-log false \
+-profile slurm \
+${optional_params[@]:-""}
+
 
 if [ \$? -eq 0 ]; then
     echo "Nextflow done."
 
-#    echo "Zip work directory"
-#    find work -type f | egrep "\.(command|exitcode)" | zip -@ -q work.zip
+    # echo "Zip work directory"
+    # find work -type f | egrep "\.(command|exitcode)" | zip -@ -q work.zip
 
-#    echo "Remove work directory"
-#    rm -r work
+    # echo "Remove work directory"
+    # rm -r work
 
-#    echo "Creating md5sum"
-#    find -type f -not -iname 'md5sum.txt' -exec md5sum {} \; > md5sum.txt
+    # echo "Creating md5sum"
+    # find -type f -not -iname 'md5sum.txt' -exec md5sum {} \; > md5sum.txt
 
-    echo "Nanoseq workflow completed successfully."
+    echo "epi2me_wf-transcriptomes workflow completed successfully."
     rm workflow.running
     touch workflow.done
 
@@ -100,7 +105,6 @@ else
 
     echo "Change permissions"
     chmod 775 -R $output
-
     exit 1
 fi
 EOT
